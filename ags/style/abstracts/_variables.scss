@@ -1,0 +1,185 @@
+@use "sass:color";
+@use "theme_variables_matugen";
+
+/*
+* Css Colors
+* Generated with Matugen
+*/
+
+
+$background: rgba(19, 19, 24, 1);
+
+$error: rgba(255, 180, 171, 1);
+
+$error_container: rgba(147, 0, 10, 1);
+
+$inverse_on_surface: rgba(48, 48, 54, 1);
+
+$inverse_primary: rgba(85, 90, 146, 1);
+
+$inverse_surface: rgba(228, 225, 233, 1);
+
+$on_background: rgba(228, 225, 233, 1);
+
+$on_error: rgba(105, 0, 5, 1);
+
+$on_error_container: rgba(255, 218, 214, 1);
+
+$on_primary: rgba(39, 43, 96, 1);
+
+$on_primary_container: rgba(224, 224, 255, 1);
+
+$on_primary_fixed: rgba(16, 20, 75, 1);
+
+$on_primary_fixed_variant: rgba(61, 66, 120, 1);
+
+$on_secondary: rgba(46, 47, 66, 1);
+
+$on_secondary_container: rgba(225, 224, 249, 1);
+
+$on_secondary_fixed: rgba(25, 26, 44, 1);
+
+$on_secondary_fixed_variant: rgba(68, 69, 89, 1);
+
+$on_surface: rgba(228, 225, 233, 1);
+
+$on_surface_variant: rgba(199, 197, 208, 1);
+
+$on_tertiary: rgba(70, 38, 59, 1);
+
+$on_tertiary_container: rgba(255, 216, 238, 1);
+
+$on_tertiary_fixed: rgba(46, 17, 38, 1);
+
+$on_tertiary_fixed_variant: rgba(94, 60, 83, 1);
+
+$outline: rgba(145, 144, 154, 1);
+
+$outline_variant: rgba(70, 70, 79, 1);
+
+$primary: rgba(190, 194, 255, 1);
+
+$primary_container: rgba(61, 66, 120, 1);
+
+$primary_fixed: rgba(224, 224, 255, 1);
+
+$primary_fixed_dim: rgba(190, 194, 255, 1);
+
+$scrim: rgba(0, 0, 0, 1);
+
+$secondary: rgba(197, 196, 221, 1);
+
+$secondary_container: rgba(68, 69, 89, 1);
+
+$secondary_fixed: rgba(225, 224, 249, 1);
+
+$secondary_fixed_dim: rgba(197, 196, 221, 1);
+
+$shadow: rgba(0, 0, 0, 1);
+
+$source_color: rgba(34, 36, 62, 1);
+
+$surface: rgba(19, 19, 24, 1);
+
+$surface_bright: rgba(57, 57, 63, 1);
+
+$surface_container: rgba(31, 31, 37, 1);
+
+$surface_container_high: rgba(42, 41, 47, 1);
+
+$surface_container_highest: rgba(52, 52, 58, 1);
+
+$surface_container_low: rgba(27, 27, 33, 1);
+
+$surface_container_lowest: rgba(14, 14, 19, 1);
+
+$surface_dim: rgba(19, 19, 24, 1);
+
+$surface_tint: rgba(190, 194, 255, 1);
+
+$surface_variant: rgba(70, 70, 79, 1);
+
+$tertiary: rgba(232, 185, 213, 1);
+
+$tertiary_container: rgba(94, 60, 83, 1);
+
+$tertiary_fixed: rgba(255, 216, 238, 1);
+
+$tertiary_fixed_dim: rgba(232, 185, 213, 1);
+
+
+/* general color variables */
+$red: #d17678;
+$accent_green: #afbea2;
+$tooltipBg: $background;
+$fg: $on_background;
+$bg: color.adjust($background, $alpha: -0.5);
+$barBg: color.adjust($background, $alpha: -0.5);
+$surface: color.adjust($surface_bright, $alpha: -0.4);
+$overlay: color.adjust($on_surface, $alpha: -0.25);
+$accent: $tertiary_container;
+
+/* os icon colors */
+$os: $on_surface_variant;
+
+/* workspaces colors */
+$primaryMon: color.mix(
+  $primary_container,
+  $on_primary_container,
+  70%,
+  $method: rgb
+);
+$primaryMonHover: color.mix(
+  $primary_container,
+  $on_primary_container,
+  45%,
+  $method: rgb
+);
+$secondaryMon: color.mix(
+  $tertiary_container,
+  $on_tertiary_container,
+  50%,
+  $method: rgb
+);
+$secondaryMonHover: color.mix(
+  $tertiary_container,
+  $on_tertiary_container,
+  30%,
+  $method: rgb
+);
+$tertiaryMon: color.mix(
+  $secondary_container,
+  $on_secondary_container,
+  70%,
+  $method: rgb
+);
+$tertiaryMonHover: color.mix(
+  $secondary_container,
+  $on_secondary_container,
+  45%,
+  $method: rgb
+);
+$fourthMon: color.mix($secondary, $on_secondary, 70%, $method: rgb);
+$fourthMonHover: color.mix($secondary, $on_secondary, 45%, $method: rgb);
+
+/* button colors */
+$buttonEnabled: color.adjust($primary, $alpha: -0.8);
+$buttonEnabledHover: color.adjust($buttonEnabled, $alpha: +0.1);
+
+$buttonDisabled: $surface;
+$buttonDisabledHover: color.adjust($buttonDisabled, $alpha: +0.39);
+
+/* hw circular proc colors */
+$ramProc: color.mix($primary_fixed_dim, $on_primary_fixed_variant, 66%);
+$cpuProc: color.mix($tertiary_fixed_dim, $on_tertiary_fixed_variant, 66%);
+$procBg: $surface_dim;
+
+/* numeric variables */
+$round: 8px;
+$round2: 16px;
+$spacing-xs: 0.25rem;
+$spacing-sm: 0.4rem;
+$spacing-md: 0.75rem;
+$border-width: 2px;
+$scale: 0.5rem;
+$font: 1.1rem;
