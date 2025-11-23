@@ -1,6 +1,5 @@
 import { Gtk } from "ags/gtk4";
-import { OptionSelect, OptionToggle, SectionHeader } from "./SettingsComponents";
-import { CAVA_STYLE_OPTIONS } from "utils/config";
+import { SectionHeader } from "./SettingsComponents";
 
 export default function AudioSettingsPage() {
   return (
@@ -9,28 +8,15 @@ export default function AudioSettingsPage() {
       vscrollbarPolicy={Gtk.PolicyType.AUTOMATIC}
       cssClasses={["settings-scroll"]}
     >
-      <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
-        <SectionHeader label="Bar Visualizer" />
-        <OptionToggle option="bar.modules.cava.show" label="Enable" />
-        <OptionSelect
-          option="bar.modules.cava.style"
-          label="Style"
-          choices={CAVA_STYLE_OPTIONS}
-        />
-        <OptionToggle
-          option="bar.modules.media.cava.show"
-          label="Cover Visualizer"
-        />
-        
-        <SectionHeader label="Music Player" />
-        <OptionToggle
-          option="musicPlayer.modules.cava.show"
-          label="Enable Visualizer"
-        />
-        <OptionSelect
-          option="musicPlayer.modules.cava.style"
-          label="Style"
-          choices={CAVA_STYLE_OPTIONS}
+      <box 
+        orientation={Gtk.Orientation.VERTICAL} 
+        spacing={8}
+        valign={Gtk.Align.CENTER}
+        halign={Gtk.Align.CENTER}
+      >
+        <label 
+          label="Audio settings coming soon"
+          cssClasses={["dim-label"]}
         />
       </box>
     </scrolledwindow>

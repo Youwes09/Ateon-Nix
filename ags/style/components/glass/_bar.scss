@@ -8,16 +8,6 @@
   border-radius: calc(#{$round} * 4);
   font-size: $font;
 
-  cava {
-    opacity: 0.1;
-    margin-left: -0.5rem;
-    margin-right: -0.5rem;
-    margin-top: 0;
-    margin-bottom: 0;
-    min-width: 16px;
-    min-height: 1px;
-  }
-
   .module {
     margin: 0 $spacing-sm;
   }
@@ -93,11 +83,6 @@
       font-size: $font;
       transition: all 0.2s ease;
       
-      cava {
-        opacity: 0.3;
-        min-width: 16px;
-        min-height: 1px;
-      }
     }
 
     &.active > box {

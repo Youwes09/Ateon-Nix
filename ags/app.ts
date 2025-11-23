@@ -12,7 +12,7 @@ import {
   Notifications,
   LogoutMenu,
   PickerWindow,
-  // MusicPlayer,
+  MusicPlayer,
   Sidebar,
   Clipboard,
   WindowSwitcher,
@@ -114,7 +114,7 @@ app.start({
     Notifications();
     OnScreenDisplay();
     SystemMenu();
-    // MusicPlayer();
+    MusicPlayer();
     PickerWindow();
     LogoutMenu();
     Sidebar();

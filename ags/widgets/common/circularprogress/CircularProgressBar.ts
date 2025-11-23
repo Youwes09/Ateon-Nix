@@ -44,9 +44,10 @@ export class CircularProgressBarWidget extends Gtk.Widget {
   @property(FillRuleSpec) fillRule = Gsk.FillRule.EVEN_ODD;
 
   private _child: Gtk.Widget | null = null;
-  private _progressArc!: ProgressArcWidget;
-  private _centerFill!: CenterFillWidget;
-  private _radiusFill!: RadiusFillWidget;
+  private _progressArc: ProgressArcWidget | null = null;
+  private _centerFill: CenterFillWidget | null = null;
+  private _radiusFill: RadiusFillWidget | null = null;
+  private _disposed = false;
 
   constructor(params?: any) {
     const {
@@ -76,7 +77,11 @@ export class CircularProgressBarWidget extends Gtk.Widget {
     this._radiusFill.set_parent(this);
 
     // Set up reactivity
-    this.connect("notify::percentage", () => this.queue_draw());
+    this.connect("notify::percentage", () => {
+      if (!this._disposed) {
+        this.queue_draw();
+      }
+    });
 
     // Apply constructor parameters to properties
     if (inverted !== undefined) this.inverted = inverted;
@@ -92,12 +97,33 @@ export class CircularProgressBarWidget extends Gtk.Widget {
     }
   }
 
-
   vfunc_dispose(): void {
-    this._progressArc?.unparent();
-    this._centerFill?.unparent();
-    this._radiusFill?.unparent();
-    this._child?.unparent();
+    if (this._disposed) {
+      return;
+    }
+    
+    this._disposed = true;
+
+    // Unparent children in reverse order of creation
+    if (this._child) {
+      this._child.unparent();
+      this._child = null;
+    }
+    
+    if (this._radiusFill) {
+      this._radiusFill.unparent();
+      this._radiusFill = null;
+    }
+    
+    if (this._centerFill) {
+      this._centerFill.unparent();
+      this._centerFill = null;
+    }
+    
+    if (this._progressArc) {
+      this._progressArc.unparent();
+      this._progressArc = null;
+    }
 
     super.vfunc_dispose();
   }
@@ -115,20 +141,24 @@ export class CircularProgressBarWidget extends Gtk.Widget {
   }
 
   vfunc_snapshot(snapshot: Gtk.Snapshot): void {
+    if (this._disposed) return;
+    
     const width = this.get_width();
     const height = this.get_height();
 
     this.updateChildGeometries(width, height);
 
-    if (this.centerFilled) {
+    if (this.centerFilled && this._centerFill) {
       this.snapshot_child(this._centerFill, snapshot);
     }
 
-    if (this.radiusFilled) {
+    if (this.radiusFilled && this._radiusFill) {
       this.snapshot_child(this._radiusFill, snapshot);
     }
 
-    this.snapshot_child(this._progressArc, snapshot);
+    if (this._progressArc) {
+      this.snapshot_child(this._progressArc, snapshot);
+    }
 
     if (this._child) {
       this.snapshot_child(this._child, snapshot);
@@ -136,15 +166,23 @@ export class CircularProgressBarWidget extends Gtk.Widget {
   }
 
   vfunc_size_allocate(width: number, height: number, baseline: number): void {
+    if (this._disposed) return;
+    
     const allocation = new Gdk.Rectangle();
     allocation.x = 0;
     allocation.y = 0;
     allocation.width = width;
     allocation.height = height;
 
-    this._progressArc.size_allocate(allocation, baseline);
-    this._centerFill.size_allocate(allocation, baseline);
-    this._radiusFill.size_allocate(allocation, baseline);
+    if (this._progressArc) {
+      this._progressArc.size_allocate(allocation, baseline);
+    }
+    if (this._centerFill) {
+      this._centerFill.size_allocate(allocation, baseline);
+    }
+    if (this._radiusFill) {
+      this._radiusFill.size_allocate(allocation, baseline);
+    }
 
     this.updateChildGeometries(width, height);
 
@@ -178,35 +216,43 @@ export class CircularProgressBarWidget extends Gtk.Widget {
   }
 
   private updateChildGeometries(width: number, height: number): void {
+    if (this._disposed) return;
+    
     const radius = Math.min(width / 2.0, height / 2.0) - 1;
     const halfLineWidth = this.lineWidth / 2.0;
     const delta = Math.max(0, radius - halfLineWidth);
     const actualLineWidth = Math.min(this.lineWidth, radius * 2);
 
-    this._progressArc.updateGeometry(
-      width / 2.0,
-      height / 2.0,
-      delta,
-      actualLineWidth,
-      this.lineCap,
-      this.startAt,
-      this.endAt,
-      this.inverted,
-      this.percentage,
-    );
+    if (this._progressArc) {
+      this._progressArc.updateGeometry(
+        width / 2.0,
+        height / 2.0,
+        delta,
+        actualLineWidth,
+        this.lineCap,
+        this.startAt,
+        this.endAt,
+        this.inverted,
+        this.percentage,
+      );
+    }
 
-    this._centerFill.updateGeometry(
-      width / 2.0,
-      height / 2.0,
-      delta,
-      this.fillRule,
-    );
+    if (this._centerFill) {
+      this._centerFill.updateGeometry(
+        width / 2.0,
+        height / 2.0,
+        delta,
+        this.fillRule,
+      );
+    }
 
-    this._radiusFill.updateGeometry(
-      width / 2.0,
-      height / 2.0,
-      delta,
-      actualLineWidth,
-    );
+    if (this._radiusFill) {
+      this._radiusFill.updateGeometry(
+        width / 2.0,
+        height / 2.0,
+        delta,
+        actualLineWidth,
+      );
+    }
   }
 }
