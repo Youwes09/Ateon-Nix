@@ -23,7 +23,7 @@
     };
 
     chromash = {
-      url = "github:Youwes09/Chromash"; 
+      url = "github:Youwes09/Chromash";  # Replace with your actual GitHub URL
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -90,7 +90,6 @@
         
         # Hyprland ecosystem
         hyprpaper
-        hyprland
         
         # System services
         bluez
@@ -170,8 +169,6 @@
           
           cat > $out/bin/ateon << 'WRAPPER'
           #!/bin/sh
-          
-          # Ensure HOME is available (it should be from the calling environment)
           ATEON_CONFIG="$HOME/.config/ags"
           
           if [ ! -d "$ATEON_CONFIG" ]; then
