@@ -23,7 +23,7 @@
     };
 
     chromash = {
-      url = "github:Youwes09/Chromash";  # Replace with your actual GitHub URL
+      url = "github:Youwes09/Chromash";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -67,7 +67,6 @@
         network
         tray
         bluetooth
-        cava
         battery
         powerprofiles
         hyprland
@@ -129,9 +128,9 @@
       agsPackage = ags.packages.${system}.default;
       runtimeDeps = mkRuntimeDeps system;
       iconsAndFonts = mkIconsAndFonts system;
-    in
-      pkgs.stdenv.mkDerivation {
-        pname = "ateon";
+    in let
+      ateon-bundle = pkgs.stdenv.mkDerivation {
+        pname = "ateon-bundle";
         version = "1.0.0";
 
         src = ./ags;
@@ -146,12 +145,29 @@
 
         installPhase = ''
           mkdir -p $out/bin $out/share/ateon
+          
+          # Bundle the app
           ags bundle app.ts $out/bin/ateon
           
-          cp -r style $out/share/ateon/
-          cp -r assets $out/share/ateon/
-          cp -r matugen $out/share/ateon/
-          cp -r configs $out/share/ateon/
+          # Copy style directory
+          if [ -d "style" ]; then
+            cp -r style $out/share/ateon/
+          fi
+          
+          # Copy assets directory
+          if [ -d "assets" ]; then
+            cp -r assets $out/share/ateon/
+          fi
+          
+          # Copy matugen templates directory (note the /templates subdirectory)
+          if [ -d "matugen" ]; then
+            cp -r matugen $out/share/ateon/
+          fi
+          
+          # Copy configs directory
+          if [ -d "configs" ]; then
+            cp -r configs $out/share/ateon/
+          fi
         '';
 
         preFixup = ''
@@ -163,39 +179,80 @@
           )
         '';
 
-        postInstall = ''
-          # Create wrapper script that initializes config directory
-          mv $out/bin/ateon $out/bin/.ateon-unwrapped
-          
-          cat > $out/bin/ateon << 'WRAPPER'
-          #!/bin/sh
-          ATEON_CONFIG="$HOME/.config/ags"
-          
-          if [ ! -d "$ATEON_CONFIG" ]; then
-            echo "Initializing Ateon configuration..."
-            mkdir -p "$ATEON_CONFIG"
-            cp -r SHARE_DIR/* "$ATEON_CONFIG/"
-            find "$ATEON_CONFIG" -type d -exec chmod 755 {} \;
-            find "$ATEON_CONFIG" -type f -exec chmod 644 {} \;
-            echo "Ateon configuration installed to $ATEON_CONFIG"
-          fi
-          
-          exec UNWRAPPED_BIN "$@"
-          WRAPPER
-          
-          sed -i "s|SHARE_DIR|$out/share/ateon|g" $out/bin/ateon
-          sed -i "s|UNWRAPPED_BIN|$out/bin/.ateon-unwrapped|g" $out/bin/ateon
-          chmod +x $out/bin/ateon
-        '';
-
         meta = with pkgs.lib; {
           description = "Material Design desktop shell for Hyprland";
-          homepage = "https://github.com/Youwes09/Ateon";
+          homepage = "https://github.com/Youwes09/Ateon-Nix";
           license = licenses.gpl3;
           platforms = platforms.linux;
           maintainers = [];
         };
       };
+    in
+      pkgs.runCommand "ateon-with-config" {
+        nativeBuildInputs = [pkgs.makeWrapper];
+      } ''
+        mkdir -p $out/bin
+
+        # Copy the bundled app and shared files
+        cp -r ${ateon-bundle}/* $out/
+
+        # Create a wrapper script for ateon to copy files on first run
+        mv $out/bin/ateon $out/bin/.ateon-unwrapped
+
+        makeWrapper $out/bin/.ateon-unwrapped $out/bin/ateon \
+          --run 'ATEON_CONFIG="$HOME/.config/ags"
+                 ATEON_SHARE="'"$out"'/share/ateon"
+                 
+                 # Ensure HOME and XDG directories are set
+                 export XDG_CACHE_HOME="''${XDG_CACHE_HOME:-$HOME/.cache}"
+                 export XDG_CONFIG_HOME="''${XDG_CONFIG_HOME:-$HOME/.config}"
+                 
+                 # Create cache directory for MPRIS cover art caching
+                 mkdir -p "$XDG_CACHE_HOME"
+                 mkdir -p "$ATEON_CONFIG"
+                 
+                 # Check if SPECIFIC config files exist (not just if directory exists)
+                 if [ ! -f "$ATEON_CONFIG/configs/config.json" ] || \
+                    [ ! -f "$ATEON_CONFIG/configs/pickerapps.json" ] || \
+                    [ ! -d "$ATEON_CONFIG/style" ]; then
+                   
+                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                   echo "  Installing Ateon configuration files..."
+                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                   
+                   # Copy each directory if source exists and destination does not
+                   if [ -d "$ATEON_SHARE/style" ] && [ ! -d "$ATEON_CONFIG/style" ]; then
+                     echo "→ Installing styles..."
+                     cp -r "$ATEON_SHARE/style" "$ATEON_CONFIG/" && echo "  ✓ Styles installed"
+                   fi
+                   
+                   if [ -d "$ATEON_SHARE/assets" ] && [ ! -d "$ATEON_CONFIG/assets" ]; then
+                     echo "→ Installing assets..."
+                     cp -r "$ATEON_SHARE/assets" "$ATEON_CONFIG/" && echo "  ✓ Assets installed"
+                   fi
+                   
+                   if [ -d "$ATEON_SHARE/matugen" ] && [ ! -d "$ATEON_CONFIG/matugen" ]; then
+                     echo "→ Installing matugen templates..."
+                     cp -r "$ATEON_SHARE/matugen" "$ATEON_CONFIG/" && echo "  ✓ Matugen templates installed"
+                   fi
+                   
+                   if [ -d "$ATEON_SHARE/configs" ] && [ ! -d "$ATEON_CONFIG/configs" ]; then
+                     echo "→ Installing configs..."
+                     cp -r "$ATEON_SHARE/configs" "$ATEON_CONFIG/" && echo "  ✓ Configs installed"
+                   fi
+                   
+                   # Make files writable
+                   echo "→ Setting permissions..."
+                   find "$ATEON_CONFIG" -type d -exec chmod 755 {} \; 2>/dev/null || true
+                   find "$ATEON_CONFIG" -type f -exec chmod 644 {} \; 2>/dev/null || true
+                   echo "  ✓ Permissions set"
+                   
+                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                   echo "  ✓ Configuration installed to: $ATEON_CONFIG"
+                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                   echo ""
+                 fi'
+      '';
   in
     flake-parts.lib.mkFlake {inherit inputs;} {
       systems = import systems;
