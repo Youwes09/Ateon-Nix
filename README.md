@@ -12,7 +12,7 @@
 [![GitHub last commit](https://img.shields.io/github/last-commit/Youwes09/Ateon/main?style=for-the-badge&logo=git&logoColor=%23A855F7&labelColor=%234C1D95&color=%23A855F7)](https://github.com/Youwes09/Ateon/commits/main)
 [![GitHub stars](https://img.shields.io/github/stars/Youwes09/Ateon?style=for-the-badge&logo=github&logoColor=%239333EA&labelColor=%234C1D95&color=%239333EA)](https://github.com/Youwes09/Ateon/stargazers)
 
-*Powered by AGSv3 • Built with GTK4 • Designed for Hyprland*
+*Powered by AGSv3 • Built with GTK4 • Designed for Hyprland • Packaged with Nix*
 
 </div>
 
@@ -21,6 +21,8 @@
 ## Overview
 
 Ateon is a complete desktop rice featuring a Material Design shell built with [AGS/Astal](https://github.com/Aylur/astal) for [Hyprland](https://github.com/hyprwm/Hyprland). Built upon the foundation of [Matshell](https://github.com/neurarian/matshell), it provides a cohesive desktop experience with intelligent theming, smooth animations, and adaptive layouts that work seamlessly across desktop and laptop configurations.
+
+This is the **Nix-packaged version** with declarative configuration through Home Manager and NixOS modules.
 
 ---
 
@@ -75,11 +77,9 @@ Ateon is a complete desktop rice featuring a Material Design shell built with [A
 │   ├── app.ts                      # Application entry point
 │   ├── options.ts                  # Configuration options
 │   ├── configs/
-│   │   ├── config.json             # User configuration
 │   │   ├── pickerapps.json         # Pinned Apps (Picker)
 │   │   └── system/                 # System configuration files
 │   │       ├── iconmappings.json
-│   │       ├── packages.json
 │   │       └── updater.json
 │   ├── assets/                     # Icons and default wallpaper
 │   │   ├── default_wallpaper/
@@ -142,8 +142,7 @@ Ateon is a complete desktop rice featuring a Material Design shell built with [A
 │   └── scripts/
 │       └── ags-restart.sh
 ├── fish/                           # Fish shell config
-│   ├── config.fish
-│   └── functions/
+│   └── config.fish
 ├── foot/                           # Foot terminal config
 │   └── foot.ini
 ├── fastfetch/                      # System info display
@@ -152,13 +151,17 @@ Ateon is a complete desktop rice featuring a Material Design shell built with [A
 │   └── config.jsonc
 ├── matugen/                        # Matugen configuration
 │   └── config.toml
+├── nix/                            # Nix modules
+│   ├── hm-module.nix               # Home Manager module
+│   └── nixos-module.nix            # NixOS module
 ├── extra/                          # Extra assets
 │   ├── ATEON-Banner.png
 │   ├── Ateon Logo.png
 │   └── previews/                   # Preview screenshots
 ├── scripts/
 │   └── GitDraw.sh                  # Backup utility
-├── install.sh                      # Installation script
+├── flake.nix                       # Nix flake definition
+├── flake.lock                      # Flake lock file
 └── starship.toml                   # Starship prompt config
 ```
 
@@ -169,14 +172,14 @@ Ateon is a complete desktop rice featuring a Material Design shell built with [A
 <details>
 <summary><strong>Dynamic Theming Engine</strong></summary>
 
-Automatic color scheme generation from wallpaper selection using matugen. Real-time theme switching across the entire system including shell components, terminal, and applications. Fine-tune specific colors through the chromash utility located at `~/.config/ags/utils/chromash/chromash` for complete control over your aesthetic.
+Automatic color scheme generation from wallpaper selection using matugen. Real-time theme switching across the entire system including shell components, terminal, and applications. Fine-tune specific colors through the chromash utility for complete control over your aesthetic.
 
 </details>
 
 <details>
 <summary><strong>Intelligent Clipboard Manager</strong></summary>
 
-System-wide clipboard history with fuzzy search, live preview, and keyboard-driven navigation. Built with GTK4 and powered by clipvault, supporting multiple content types with efficient memory management. Supports up to 100 entries with smooth scrolling interface limited to 9 visible items.
+System-wide clipboard history with fuzzy search, live preview, and keyboard-driven navigation. Built with GTK4 and powered by cliphist, supporting multiple content types with efficient memory management. Supports up to 100 entries with smooth scrolling interface limited to 9 visible items.
 
 </details>
 
@@ -240,115 +243,136 @@ Information-dense status bar with themed Hyprland workspace indicators, system t
 
 ## Installation
 
-### Quick Start
+### Prerequisites
+
+- NixOS or any Linux distribution with Nix package manager installed
+- Nix flakes enabled (`experimental-features = nix-command flakes` in `nix.conf`)
+- Hyprland compositor (can be managed through the NixOS module)
+
+### Method 1: NixOS Module (Recommended)
+
+Add Ateon to your NixOS configuration:
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    ateon.url = "github:Youwes09/Ateon-Nix";
+  };
+
+  outputs = { nixpkgs, ateon, ... }: {
+    nixosConfigurations.yourHostname = nixpkgs.lib.nixosSystem {
+      modules = [
+        ateon.nixosModules.default
+        {
+          programs.ateon = {
+            enable = true;
+            # Optional: Enable additional Hyprland integration
+            hyprland.enable = true;
+          };
+        }
+      ];
+    };
+  };
+}
+```
+
+### Method 2: Home Manager Module
+
+For Home Manager users:
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    home-manager.url = "github:nix-community/home-manager";
+    ateon.url = "github:Youwes09/Ateon-Nix";
+  };
+
+  outputs = { nixpkgs, home-manager, ateon, ... }: {
+    homeConfigurations.yourUsername = home-manager.lib.homeManagerConfiguration {
+      modules = [
+        ateon.homeManagerModules.default
+        {
+          programs.ateon = {
+            enable = true;
+          };
+        }
+      ];
+    };
+  };
+}
+```
+
+### Method 3: Direct Installation
+
+For testing or standalone use:
 
 ```bash
-git clone https://github.com/Youwes09/Ateon.git ~/Ateon
+# Clone the repository
+git clone https://github.com/Youwes09/Ateon-Nix.git ~/Ateon
 cd ~/Ateon
-bash install.sh
+
+# Run directly with nix
+nix run .
+
+# Or install to your profile
+nix profile install .
+```
+
+### Method 4: Development Environment
+
+For development or customization:
+
+```bash
+git clone https://github.com/Youwes09/Ateon-Nix.git ~/Ateon
+cd ~/Ateon
+
+# Enter development shell
+nix develop
+
+# Run in development mode
+ags run
 ```
 
 > [!IMPORTANT]
-> The installer preserves existing configurations and will not overwrite files without explicit permission.
-
-### Dependencies
-
-<details>
-<summary><strong>Core Requirements</strong></summary>
-
-```
-aylurs-gtk-shell-git
-libastal-hyprland-git
-libastal-tray-git
-libastal-notifd-git
-libastal-apps-git
-libastal-wireplumber-git
-libastal-mpris-git
-libastal-network-git
-libastal-bluetooth-git
-libastal-cava-git
-libastal-battery-git
-libastal-powerprofiles-git
-libgtop
-libadwaita
-libsoup3
-hyprland
-networkmanager
-wireplumber
-```
-
-</details>
-
-<details>
-<summary><strong>System Utilities</strong></summary>
-
-```
-coreutils
-dart-sass
-imagemagick
-bluez
-bluez-utils
-adwaita-icon-theme
-```
-</details>
-
-<details>
-<summary><strong>Fonts</strong></summary>
-
-```
-ttf-material-symbols-variable-git
-ttf-firacode-nerd
-```
-
-</details>
-
-<details>
-<summary><strong>Theming System</strong></summary>
-
-```
-matugen
-chromash(https://github.com/Youwes09/Chromash)
-```
-</details>
-
-<details>
-<summary><strong>Laptop Features (Optional)</strong></summary>
-
-```
-upower
-brightnessctl
-```
-
-Required for battery monitoring and display brightness control on portable devices.
-
-</details>
+> On first run, Ateon automatically copies configuration files to `~/.config/ags/`. These files are writable and won't be overwritten on subsequent runs.
 
 ---
 
 ## Usage
 
+### First Launch
+
+When you first run Ateon, it will automatically:
+1. Create the `~/.config/ags/` directory structure
+2. Copy configuration files, styles, assets, and matugen templates
+3. Set proper permissions for customization
+4. Start the shell
+
+All configuration files in `~/.config/ags/` are now editable and persistent.
+
 ### Wallpaper & Theme Management
 
 Access the integrated wallpaper picker through the unified picker interface. Select any wallpaper to automatically generate and apply a matching Material Design color scheme across the entire system.
 
-For advanced color customization, use the chromash utility:
+For advanced color customization, chromash is included in the package:
 
 ```bash
-~/.config/ags/utils/chromash/chromash
+chromash
 ```
 
-This executable provides fine-grained control over specific color values in your generated theme.
+This provides fine-grained control over specific color values in your generated theme.
 
 ### Configuration
 
 #### Shell Settings
 
-Edit `~/.config/ags/configs/config.json` to customize:
-- Preferred terminal emulator
-- Default browser
-- File manager
-- Component behavior
-- Animation speeds and effects
+Edit `~/.config/ags/configs/pickerapps.json` to customize pinned applications in the picker.
+
+System configuration files are in `~/.config/ags/configs/system/`:
+- `iconmappings.json` - Custom icon mappings
+- `updater.json` - System updater configuration
 
 #### Hyprland Configuration
 
@@ -357,6 +381,11 @@ The included Hyprland configuration provides:
 - Pre-configured keybindings
 - Layer rules for proper blur effects
 - Multi-monitor workspace assignments
+
+Copy the Hyprland configs to get started:
+```bash
+cp -r ~/Ateon/hypr ~/.config/
+```
 
 #### Theme Customization
 
@@ -373,6 +402,20 @@ Generated themes are applied to:
 - Fish shell
 - GTK applications
 - Discord (Ateon Midnight theme)
+
+### Updating
+
+With Nix flakes, updating is simple:
+
+```bash
+# Update flake inputs
+nix flake update
+
+# Rebuild your system/home configuration
+sudo nixos-rebuild switch --flake .
+# or for Home Manager
+home-manager switch --flake .
+```
 
 ### Personal Backup System
 
@@ -393,7 +436,7 @@ This utility creates backups of your configuration or syncs changes from your pe
 | **Status Bar** | System information, workspace indicators, system tray | GTK4, Astal |
 | **App Launcher** | Fuzzy search application access with instant execution | libastal-apps |
 | **Wallpaper Manager** | Grid-based wallpaper browser with live preview | GTK4, matugen |
-| **Clipboard Manager** | History management with search and content preview | GTK4, clipvault |
+| **Clipboard Manager** | History management with search and content preview | GTK4, cliphist |
 | **Notification Center** | Grouped notifications with DND mode and actions | libastal-notifd |
 | **System Menu** | Network, Bluetooth, audio, brightness, power controls | Multiple Astal libraries |
 | **Music Player** | Media controls with CAVA visualization | libastal-mpris, libastal-cava |
@@ -401,6 +444,60 @@ This utility creates backups of your configuration or syncs changes from your pe
 | **OSD** | On-screen indicators for volume, brightness, Bluetooth | GTK4 |
 | **Logout Menu** | Power management interface with confirmation | GTK4 |
 | **Control Panel** | Centralized settings and configuration interface | GTK4 |
+
+---
+
+## Dependencies
+
+All dependencies are automatically managed by Nix. The flake includes:
+
+**Core AGS/Astal Libraries:**
+- astal4, io, notifd, apps, wireplumber, mpris, network, tray
+- bluetooth, battery, powerprofiles, hyprland
+
+**System Utilities:**
+- dart-sass, imagemagick, libnotify, wl-clipboard, cliphist
+- brightnessctl, hyprpaper, bluez, networkmanager
+- grim, slurp, hyprpicker, swappy, playerctl
+
+**Theming:**
+- matugen (Material color generation)
+- chromash (Advanced color customization)
+
+**GTK/GLib:**
+- libgtop, libadwaita, libsoup3, glib-networking
+
+**Icons & Fonts:**
+- adwaita-icon-theme, material-design-icons, material-symbols
+
+---
+
+## Troubleshooting
+
+### Configuration not loading
+If your changes to `~/.config/ags/` aren't applying:
+```bash
+# Restart Ateon
+pkill ags
+ateon
+```
+
+### Missing icons or fonts
+Icons and fonts are bundled with the package. If you're missing them, ensure the package is properly installed:
+```bash
+nix profile list | grep ateon
+```
+
+### Chromash not found
+Chromash is included in the runtime dependencies. If it's not found:
+```bash
+# Check if it's in PATH
+which chromash
+
+# If using the development shell
+nix develop
+chromash
+```
 
 ---
 
@@ -422,12 +519,14 @@ This project is built upon the work of numerous talented developers:
 - [saimoomedits](https://github.com/saimoomedits/eww-widgets) - UI/UX design patterns
 - [end-4](https://github.com/end-4/dots-hyprland) - Color generation methodology
 
-Special recognition to the Hyprland community and all contributors who make ambitious desktop customization projects possible.
+Special recognition to the Hyprland and NixOS communities and all contributors who make ambitious desktop customization projects possible.
 
 ---
 
 <div align="center">
 
 **[⬆ Back to Top](#ateon)**
+
+Made with ❄️ and Nix
 
 </div>
