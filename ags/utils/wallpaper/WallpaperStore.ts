@@ -17,17 +17,47 @@ import type {
   ThemeScheme,
 } from "./types";
 
-const CHROMASH_PATH = GLib.build_filenamev([
-  GLib.get_home_dir(),
-  ".config",
-  "ags",
-  "utils",
-  "chromash",
-  "chromash"
-]);
+/**
+ * Find chromash binary in PATH
+ */
+function getChromashPath(): string | null {
+  return GLib.find_program_in_path("chromash");
+}
 
-function getChromashPath() {
-  return CHROMASH_PATH;
+/**
+ * Map internal scheme names to chromash CLI scheme types
+ */
+function mapSchemeToChromash(scheme: ThemeScheme): string {
+  const schemeMap: Record<string, string> = {
+    "scheme-content": "content",
+    "scheme-expressive": "expressive",
+    "scheme-fidelity": "fidelity",
+    "scheme-fruit-salad": "fruit-salad",
+    "scheme-monochrome": "monochrome",
+    "scheme-neutral": "neutral",
+    "scheme-rainbow": "rainbow",
+    "scheme-tonal-spot": "tonal-spot",
+  };
+  
+  return schemeMap[scheme] || "rainbow";
+}
+
+/**
+ * Map chromash scheme output back to internal scheme names
+ */
+function mapChromashToScheme(chromashScheme: string): ThemeScheme {
+  const reverseMap: Record<string, ThemeScheme> = {
+    "content": "scheme-content",
+    "expressive": "scheme-expressive",
+    "fidelity": "scheme-fidelity",
+    "fruit-salad": "scheme-fruit-salad",
+    "monochrome": "scheme-monochrome",
+    "neutral": "scheme-neutral",
+    "rainbow": "scheme-rainbow",
+    "tonal-spot": "scheme-tonal-spot",
+  };
+  
+  return reverseMap[chromashScheme] || "scheme-rainbow";
 }
 
 @register({ GTypeName: "WallpaperStore" })
@@ -299,8 +329,8 @@ export class WallpaperStore extends GObject.Object {
 
   private applyManualThemeSettings(): void {
     const chromash = getChromashPath();
-    if (!GLib.file_test(chromash, GLib.FileTest.IS_EXECUTABLE)) {
-      console.warn("chromash not found, cannot apply manual theme settings");
+    if (!chromash) {
+      console.warn("chromash not found in PATH, cannot apply manual theme settings");
       return;
     }
 
@@ -310,18 +340,18 @@ export class WallpaperStore extends GObject.Object {
     }
 
     // Build wallpaper command with manual overrides
-    let cmd = `"${chromash}" wallpaper "${this.currentWallpaperPath}"`;
+    const args: string[] = ["wallpaper", this.currentWallpaperPath];
     
     if (this.manualMode !== "auto") {
-      cmd += ` --mode ${this.manualMode}`;
+      args.push("--mode", this.manualMode);
     }
     
     if (this.manualScheme !== "auto") {
-      const chromashScheme = this.manualScheme === "scheme-neutral" ? "neutral" : 
-                            this.manualScheme === "scheme-rainbow" ? "rainbow" :
-                            this.manualScheme; // Pass through other schemes
-      cmd += ` --scheme ${chromashScheme}`;
+      const chromashScheme = mapSchemeToChromash(this.manualScheme);
+      args.push("--scheme", chromashScheme);
     }
+
+    const cmd = `chromash ${args.map(arg => `"${arg}"`).join(" ")}`;
 
     execAsync(cmd)
       .then(() => {
@@ -330,7 +360,7 @@ export class WallpaperStore extends GObject.Object {
           mode: this.manualMode === "auto" ? "dark" : this.manualMode,
           scheme: this.manualScheme === "auto" ? "scheme-rainbow" : this.manualScheme,
           tone: this.manualMode === "light" ? 80 : 20,
-          chroma: this.manualScheme === "scheme-neutral" ? 10 : 40,
+          chroma: this.getChromaForScheme(this.manualScheme),
         };
         this.sendThemeNotification(this.currentWallpaperPath, analysis);
       })
@@ -372,23 +402,23 @@ export class WallpaperStore extends GObject.Object {
 
   private async applyWallpaperWithChromash(imagePath: string): Promise<void> {
     const chromash = getChromashPath();
-    if (!GLib.file_test(chromash, GLib.FileTest.IS_EXECUTABLE)) {
-      throw new Error("chromash not found or not executable at " + chromash);
+    if (!chromash) {
+      throw new Error("chromash not found in PATH");
     }
 
     // Build wallpaper command with any manual overrides
-    let cmd = `"${chromash}" wallpaper "${imagePath}"`;
+    const args: string[] = ["wallpaper", imagePath];
     
     if (this.manualMode !== "auto") {
-      cmd += ` --mode ${this.manualMode}`;
+      args.push("--mode", this.manualMode);
     }
     
     if (this.manualScheme !== "auto") {
-      const chromashScheme = this.manualScheme === "scheme-neutral" ? "neutral" : 
-                            this.manualScheme === "scheme-rainbow" ? "rainbow" :
-                            this.manualScheme;
-      cmd += ` --scheme ${chromashScheme}`;
+      const chromashScheme = mapSchemeToChromash(this.manualScheme);
+      args.push("--scheme", chromashScheme);
     }
+
+    const cmd = `chromash ${args.map(arg => `"${arg}"`).join(" ")}`;
 
     await execAsync(cmd);
     this.scheduleThemeUpdate(imagePath);
@@ -411,12 +441,12 @@ export class WallpaperStore extends GObject.Object {
   private async applyThemeWithManualOverrides(imagePath: string): Promise<void> {
     try {
       const chromash = getChromashPath();
-      if (!GLib.file_test(chromash, GLib.FileTest.IS_EXECUTABLE)) {
+      if (!chromash) {
         return;
       }
 
       // Get the theme info from chromash
-      const themeOutput = await execAsync(`"${chromash}" theme`);
+      const themeOutput = await execAsync("chromash theme");
       const autoAnalysis = this.parseChromashThemeOutput(themeOutput) ?? this.fallbackColorAnalysis(imagePath);
 
       // Cache the auto-detected analysis
@@ -440,26 +470,48 @@ export class WallpaperStore extends GObject.Object {
   private parseChromashThemeOutput(output: string): ThemeProperties | null {
     try {
       let mode: "light" | "dark" = "dark";
-      let scheme: "scheme-neutral" | "scheme-rainbow" = "scheme-rainbow";
+      let scheme: ThemeScheme = "scheme-rainbow";
       let tone = 20;
       let chroma = 40;
 
       const lines = output.trim().split("\n");
       for (const line of lines) {
-        if (line.includes("light")) {
+        const lowerLine = line.toLowerCase();
+        
+        // Parse mode
+        if (lowerLine.includes("light")) {
           mode = "light";
           tone = 80;
-        } else if (line.includes("dark")) {
+        } else if (lowerLine.includes("dark")) {
           mode = "dark";
           tone = 20;
         }
 
-        if (line.includes("neutral")) {
+        // Parse scheme - check for all chromash scheme types
+        if (lowerLine.includes("content")) {
+          scheme = "scheme-content";
+          chroma = 30;
+        } else if (lowerLine.includes("expressive")) {
+          scheme = "scheme-expressive";
+          chroma = 50;
+        } else if (lowerLine.includes("fidelity")) {
+          scheme = "scheme-fidelity";
+          chroma = 40;
+        } else if (lowerLine.includes("fruit-salad")) {
+          scheme = "scheme-fruit-salad";
+          chroma = 60;
+        } else if (lowerLine.includes("monochrome")) {
+          scheme = "scheme-monochrome";
+          chroma = 0;
+        } else if (lowerLine.includes("neutral")) {
           scheme = "scheme-neutral";
           chroma = 10;
-        } else if (line.includes("rainbow") || line.includes("rainbow")) {
+        } else if (lowerLine.includes("rainbow")) {
           scheme = "scheme-rainbow";
           chroma = 40;
+        } else if (lowerLine.includes("tonal-spot")) {
+          scheme = "scheme-tonal-spot";
+          chroma = 35;
         }
       }
 
@@ -474,9 +526,9 @@ export class WallpaperStore extends GObject.Object {
     const basename = GLib.path_get_basename(imagePath).toLowerCase();
 
     let mode: "light" | "dark" = "dark";
-    let scheme: "scheme-neutral" | "scheme-rainbow" = "scheme-rainbow";
+    let scheme: ThemeScheme = "scheme-rainbow";
 
-    // Filename-based heuristics
+    // Filename-based heuristics for mode
     if (
       basename.includes("light") ||
       basename.includes("day") ||
@@ -495,23 +547,47 @@ export class WallpaperStore extends GObject.Object {
       mode = hour >= 6 && hour < 18 ? "light" : "dark";
     }
 
+    // Filename-based heuristics for scheme
     if (
       basename.includes("neutral") ||
       basename.includes("gray") ||
-      basename.includes("grey") ||
+      basename.includes("grey")
+    ) {
+      scheme = "scheme-neutral";
+    } else if (
       basename.includes("mono") ||
       basename.includes("black") ||
       basename.includes("white")
     ) {
-      scheme = "scheme-neutral";
+      scheme = "scheme-monochrome";
+    } else if (basename.includes("rainbow") || basename.includes("colorful")) {
+      scheme = "scheme-rainbow";
+    } else if (basename.includes("expressive") || basename.includes("vibrant")) {
+      scheme = "scheme-expressive";
     }
 
     return {
       tone: mode === "light" ? 80 : 20,
-      chroma: scheme === "scheme-rainbow" ? 40 : 10,
+      chroma: this.getChromaForScheme(scheme),
       mode,
       scheme,
     };
+  }
+
+  private getChromaForScheme(scheme: ThemeScheme): number {
+    const chromaMap: Record<ThemeScheme | "auto", number> = {
+      "auto": 40,
+      "scheme-content": 30,
+      "scheme-expressive": 50,
+      "scheme-fidelity": 40,
+      "scheme-fruit-salad": 60,
+      "scheme-monochrome": 0,
+      "scheme-neutral": 10,
+      "scheme-rainbow": 40,
+      "scheme-tonal-spot": 35,
+    };
+    
+    return chromaMap[scheme] || 40;
   }
 
   private cacheThemeAnalysis(
@@ -554,7 +630,7 @@ export class WallpaperStore extends GObject.Object {
       if (!notifySend) return;
 
       const basename = GLib.path_get_basename(imagePath);
-      const message = `Theme: ${analysis.mode} ${analysis.scheme}`;
+      const message = `Theme: ${analysis.mode} ${analysis.scheme.replace("scheme-", "")}`;
 
       GLib.spawn_command_line_async(
         `${notifySend} "Chromash Theme Applied" "Image: ${basename}\n${message}"`,
