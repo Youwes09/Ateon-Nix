@@ -102,6 +102,7 @@
         
         # Media control
         playerctl
+        alsa-utils
         
         # Python for various tools
         python3
