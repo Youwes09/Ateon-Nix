@@ -3,14 +3,18 @@ import app from "ags/gtk4/app";
 import { Gtk } from "ags/gtk4";
 import { createState } from "ags";
 import { currentTimeString } from "utils/time";
+import options from "options";
 
 export default function Time() {
   const [revealPower, setRevealPower] = createState(false);
 
-  const timeLabel = currentTimeString((time) => {
+  const format = options["clock.format"].get() as "12" | "24";
+
+  const timeLabel = currentTimeString((time, ampm) => {
     const [hours, minutes] = time.split(":");
-    return `${hours} 󰇙 ${minutes}`;
-  });
+    const clock = `${hours} 󰇙 ${minutes}`;
+    return format === "12" && ampm ? `${clock} ${ampm}` : clock;
+  }, format);
 
   return (
     <box
